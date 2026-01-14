@@ -16,7 +16,7 @@ tasks:
   load-data:
     desc: "Download and setup all client data (Motor Imagery + Mental Arithmetic)"
     cmds:
-      - python scripts/load_client_data.py
+      - poetry run python scripts/load_client_data.py
 
   # ============================
   # Status Tasks
