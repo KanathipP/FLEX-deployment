@@ -1,0 +1,54 @@
+version: "3"
+
+tasks:
+  0-metrics:
+    desc: "FLEX:[0] Install metrics server"
+    cmds:
+      - kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+      - kubectl patch deployment metrics-server -n kube-system --type='json' -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]' || true
+      - kubectl wait --namespace kube-system --for=condition=available deployment/metrics-server --timeout=120s
+  0-dashboard:
+    desc: "FLEX:[0] Install Kubernetes Dashboard"
+    cmds:
+      - kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+      - kubectl wait --namespace kubernetes-dashboard --for=condition=available deployment/kubernetes-dashboard --timeout=120s
+  1-namespace:
+    desc: "FLEX:[1] Create namespace for FLEX"
+    cmds:
+      - kubectl apply -f ./1-namespace/Namespace.flex.yaml
+  2-serverapp:
+    desc: "FLEX:[2] Apply FLEX's FLWR ServerApp"
+    cmds:
+      - kubectl apply -f ./2-serverapp/PV.trained_models.yaml
+      - kubectl apply -f ./2-serverapp/PVC.trained_models.yaml
+      - kubectl apply -f ./2-serverapp/Deployment.superlink.yaml
+      - kubectl apply -f ./2-serverapp/Deployment.serverapp.yaml
+      - kubectl apply -f ./2-serverapp/Service.superlink.yaml
+  3-postgres:
+    desc: "FLEX:[3] Apply FLEX's Database (PostgreSQL)"
+    cmds:
+      - kubectl apply -f ./3-postgres/PVC.postgres.yaml
+      - kubectl apply -f ./3-postgres/Deployment.postgres.yaml
+      - kubectl apply -f ./3-postgres/Service.postgres.yaml
+  4-db-migrate:
+    desc: "FLEX:[4] Apply Migrate DB Job"
+    cmds:
+      - kubectl wait --namespace flex --for=condition=ready pod -l name=postgres --timeout=120s
+      - kubectl apply -f ./4-db-migrate/Secret.flex-db.yaml
+      - kubectl apply -f ./4-db-migrate/ServiceAccount.flex.yaml
+      - kubectl delete job db-migrate -n flex --ignore-not-found
+      - kubectl apply -f ./4-db-migrate/Job.db-migrate.yaml
+  5-platform:
+    desc: "FLEX:[5] Apply Platform"
+    cmds:
+      - kubectl wait --namespace flex --for=condition=complete job/db-migrate -n flex --timeout=120s
+      - kubectl apply -f ./5-platform/ConfigMap.flex.yaml
+      - kubectl apply -f ./5-platform/RBAC.flex.yaml
+      - kubectl apply -f ./5-platform/Deployment.flex-frontend.yaml
+      - kubectl apply -f ./5-platform/Service.flex-frontend.yaml
+      - kubectl apply -f ./5-platform/Deployment.flex-backend.yaml
+      - kubectl apply -f ./5-platform/Service.flex-backend.yaml
+      - kubectl apply -f ./5-platform/Deployment.flex-http-server.yaml
+      - kubectl apply -f ./5-platform/Service.flex-http-server.yaml
+      - kubectl apply -f ./5-platform/Deployment.flex-log-puller.yaml
+

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: supernode
+  labels:
+    {{- include "fl-client.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: supernode
+  ports:
+    - port: 9094
+      targetPort: 9094

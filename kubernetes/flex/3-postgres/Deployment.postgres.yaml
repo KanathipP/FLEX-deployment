@@ -1,0 +1,70 @@
+# PostgreSQL Database Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: flex
+  labels:
+    name: postgres
+    component: database
+    app.kubernetes.io/part-of: flex
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: postgres
+      component: database
+  template:
+    metadata:
+      labels:
+        name: postgres
+        component: database
+    spec:
+      nodeSelector:
+        node-role: server
+      containers:
+        - name: postgres
+          image: bitnami/postgresql:latest
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRESQL_USERNAME
+              value: "admin"
+            - name: POSTGRESQL_PASSWORD
+              value: "adminpassword"
+            - name: POSTGRESQL_DATABASE
+              value: "fl_store"
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /bitnami/postgresql
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - admin
+                - -d
+                - fl_store
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - admin
+                - -d
+                - fl_store
+            initialDelaySeconds: 30
+            periodSeconds: 30
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: postgres-pvc

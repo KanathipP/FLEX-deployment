@@ -1,0 +1,18 @@
+# PersistentVolumeClaim for PostgreSQL data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: flex
+  labels:
+    name: postgres
+    component: database
+    app.kubernetes.io/part-of: flex
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  # Uncomment and specify storageClassName if needed
+  # storageClassName: standard

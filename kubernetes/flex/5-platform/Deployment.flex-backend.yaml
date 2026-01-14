@@ -1,0 +1,57 @@
+# FLEX-Backend Deployment
+# FastAPI server (main.py) that runs `flwr run` commands
+# Contains the flex/ code module
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flex-backend
+  namespace: flex
+  labels:
+    name: flex-backend
+    component: backend
+    app.kubernetes.io/part-of: flex
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: flex-backend
+      component: backend
+  template:
+    metadata:
+      labels:
+        name: flex-backend
+        component: backend
+    spec:
+      nodeSelector:
+        node-role: server
+      containers:
+        - name: flex-backend
+          # TODO: Replace with your actual image registry/repository
+          image: kanathipz/flex-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            # Use kubernetes-federation from pyproject.toml
+            - name: FLWR_FEDERATION_NAME
+              value: "kubernetes-federation"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /docs
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /docs
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 30

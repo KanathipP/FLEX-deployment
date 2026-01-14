@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supernode
+  labels:
+    {{- include "fl-client.labels" . | nindent 4 }}
+    component: supernode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: supernode
+  template:
+    metadata:
+      labels:
+        app: supernode
+        {{- include "fl-client.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: supernode
+          image: "{{ .Values.supernode.image.repository }}:{{ .Values.supernode.image.tag }}"
+          imagePullPolicy: {{ .Values.supernode.image.pullPolicy }}
+          args:
+            {{- if .Values.tls.enabled }}
+            - --root-certificates=/certs/ca.crt
+            {{- else }}
+            - --insecure
+            {{- end }}
+            - --superlink={{ required "superlinkAddr is required" .Values.superlinkAddr }}
+            - --node-config=client_id="{{ include "fl-client.clientId" . }}"
+            - --clientappio-api-address=0.0.0.0:9094
+            - --isolation=process
+          ports:
+            - containerPort: 9094
+          resources:
+            {{- toYaml .Values.supernode.resources | nindent 12 }}
+          {{- if .Values.tls.enabled }}
+          volumeMounts:
+            - name: tls
+              mountPath: /certs
+              readOnly: true
+          {{- end }}
+      {{- if .Values.tls.enabled }}
+      volumes:
+        - name: tls
+          secret:
+            secretName: {{ .Values.tls.secretName }}
+      {{- end }}

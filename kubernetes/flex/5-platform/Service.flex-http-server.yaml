@@ -1,0 +1,19 @@
+# FLEX-HTTP-Server Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: flex-http-server
+  namespace: flex
+  labels:
+    name: flex-http-server
+    component: api
+    app.kubernetes.io/part-of: flex
+spec:
+  type: ClusterIP
+  selector:
+    name: flex-http-server
+    component: api
+  ports:
+    - name: http
+      port: 8081
+      targetPort: 8081

@@ -1,0 +1,32 @@
+version: "3"
+
+vars:
+  PROJECT_ROOT:
+    sh: cd .. && pwd
+
+tasks:
+  createconfig:
+    desc: "Generate kind-config.yaml from template with current project path"
+    cmds:
+      - |
+        sed 's|__PROJECT_ROOT__|{{.PROJECT_ROOT}}|g' kind-config.yaml.template > kind-config.yaml
+      - 'echo "Generated kind-config.yaml with PROJECT_ROOT={{.PROJECT_ROOT}}"'
+    sources:
+      - kind-config.yaml.template
+    generates:
+      - kind-config.yaml
+
+  create:
+    desc: "Create kind cluster with 4 workers (for FL demo)"
+    deps: [createconfig]
+    cmds:
+      - kind create cluster --config ./kind-config.yaml --name flex-demo
+      - 'echo "Kind cluster created with 4 workers"'
+      - kubectl get nodes
+
+  delete:
+    desc: "Delete kind cluster"
+    cmds:
+      - kind delete cluster --name flex-demo
+      - 'echo "Kind cluster deleted"'
+

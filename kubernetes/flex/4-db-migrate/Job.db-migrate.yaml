@@ -1,0 +1,183 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migrate
+  namespace: flex
+  labels:
+    app: db-migrate
+spec:
+  ttlSecondsAfterFinished: 300  # Cleanup job after 5 minutes
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: db-migrate
+    spec:
+      serviceAccountName: flex-service-account
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: migrate/migrate:v4.17.0
+          command:
+            - migrate
+            - -path=/migrations
+            - -database=$(DATABASE_URL)
+            - up
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: flex-db-secret
+                  key: DATABASE_URL
+          volumeMounts:
+            - name: migrations
+              mountPath: /migrations
+      volumes:
+        - name: migrations
+          configMap:
+            name: db-migrations
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-migrations
+  namespace: flex
+data:
+  000001_add_fl_training_tables.up.sql: |
+    CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+    CREATE TABLE IF NOT EXISTS fl_trainings (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      fl_training_id TEXT NOT NULL UNIQUE,
+      parent_training_id TEXT,
+      load_heads BOOLEAN NOT NULL DEFAULT FALSE,
+      model_name TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'created',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+      -- FL Settings
+      num_rounds INT NOT NULL DEFAULT 0,
+      fraction_train DOUBLE PRECISION NOT NULL DEFAULT 0,
+      max_local_epochs INT NOT NULL DEFAULT 0,
+
+      -- Resource-Aware Scheduling
+      max_ram_mb INT NOT NULL DEFAULT 2048,
+      min_bs INT NOT NULL DEFAULT 4,
+      max_bs INT NOT NULL DEFAULT 64,
+      default_bs INT NOT NULL DEFAULT 16,
+      min_lr DOUBLE PRECISION NOT NULL DEFAULT 0.0001,
+      max_lr DOUBLE PRECISION NOT NULL DEFAULT 0.001,
+      default_lr DOUBLE PRECISION NOT NULL DEFAULT 0.001,
+
+      -- Scheduling Toggles
+      enable_lr_scheduling BOOLEAN NOT NULL DEFAULT FALSE,
+      enable_bs_scheduling BOOLEAN NOT NULL DEFAULT FALSE,
+      enable_le_scheduling BOOLEAN NOT NULL DEFAULT FALSE,
+      le_scheduler_type TEXT NOT NULL DEFAULT '',
+      similarity_threshold DOUBLE PRECISION NOT NULL DEFAULT 0,
+
+      -- Task Selection
+      selected_tasks TEXT NOT NULL DEFAULT '',
+
+      -- Legacy/Helper fields
+      current_server_round INT NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS training_clients (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      fl_training_id TEXT NOT NULL REFERENCES fl_trainings(fl_training_id) ON DELETE CASCADE,
+      client_id TEXT NOT NULL,
+      node_name VARCHAR(255) NOT NULL,
+      pod_name VARCHAR(255) NOT NULL,
+      state VARCHAR(255) NOT NULL,
+      state_percent DOUBLE PRECISION NOT NULL DEFAULT 0,
+      task_name TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      last_log_read TIMESTAMPTZ NOT NULL DEFAULT now(),
+      UNIQUE (fl_training_id, client_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS client_logs (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      client_id UUID NOT NULL REFERENCES training_clients(id) ON DELETE CASCADE,
+      text TEXT NOT NULL,
+      client_output_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS metrics_training (
+      id SERIAL PRIMARY KEY,
+      fl_training_id TEXT NOT NULL REFERENCES fl_trainings(fl_training_id) ON DELETE CASCADE,
+      client_id TEXT NOT NULL,
+      server_round INT NOT NULL,
+      epoch INT NOT NULL,
+      train_loss DOUBLE PRECISION NOT NULL,
+      val_loss DOUBLE PRECISION NOT NULL,
+      val_accuracy DOUBLE PRECISION NOT NULL,
+      learning_rate DOUBLE PRECISION NOT NULL,
+      batch_size INT NOT NULL DEFAULT 16,
+      epoch_elapsed_time DOUBLE PRECISION NOT NULL,
+      cosine_similarity DOUBLE PRECISION NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS metrics_testing (
+      id SERIAL PRIMARY KEY,
+      fl_training_id TEXT NOT NULL REFERENCES fl_trainings(fl_training_id) ON DELETE CASCADE,
+      client_id TEXT NOT NULL,
+      server_round INT NOT NULL,
+      test_loss DOUBLE PRECISION NOT NULL,
+      test_accuracy DOUBLE PRECISION NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS metrics_server (
+      id SERIAL PRIMARY KEY,
+      fl_training_id TEXT NOT NULL REFERENCES fl_trainings(fl_training_id) ON DELETE CASCADE,
+      server_round INT NOT NULL,
+      global_accuracy DOUBLE PRECISION NOT NULL,
+      global_loss DOUBLE PRECISION NOT NULL,
+      avg_drift DOUBLE PRECISION NOT NULL,
+      avg_epoch_time DOUBLE PRECISION NOT NULL,
+      max_round_time DOUBLE PRECISION NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS fl_model_weights (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      fl_training_id TEXT NOT NULL REFERENCES fl_trainings(fl_training_id) ON DELETE CASCADE,
+      server_round INT NOT NULL,
+      payload JSONB NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      UNIQUE (fl_training_id, server_round)
+    );
+
+    CREATE TABLE IF NOT EXISTS metrics_training_step (
+      id SERIAL PRIMARY KEY,
+      fl_training_id TEXT NOT NULL REFERENCES fl_trainings(fl_training_id) ON DELETE CASCADE,
+      client_id TEXT NOT NULL,
+      server_round INT NOT NULL,
+      epoch INT NOT NULL,
+      batch INT NOT NULL,
+      total_batch INT NOT NULL,
+      loss DOUBLE PRECISION NOT NULL,
+      learning_rate DOUBLE PRECISION NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_step_metrics_lookup 
+    ON metrics_training_step(fl_training_id, client_id, server_round, epoch);
+
+  000001_add_fl_training_tables.down.sql: |
+    DROP TABLE IF EXISTS metrics_training_step CASCADE;
+    DROP TABLE IF EXISTS metrics_server CASCADE;
+    DROP TABLE IF EXISTS metrics_testing CASCADE;
+    DROP TABLE IF EXISTS metrics_training CASCADE;
+    DROP TABLE IF EXISTS fl_model_weights CASCADE;
+    DROP TABLE IF EXISTS client_logs CASCADE;
+    DROP TABLE IF EXISTS training_clients CASCADE;
+    DROP TABLE IF EXISTS training_servers CASCADE;
+    DROP TABLE IF EXISTS fl_trainings CASCADE;
+
+    DROP EXTENSION IF EXISTS "pgcrypto";
+

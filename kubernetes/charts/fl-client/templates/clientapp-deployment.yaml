@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clientapp
+  labels:
+    {{- include "fl-client.labels" . | nindent 4 }}
+    component: clientapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clientapp
+  template:
+    metadata:
+      labels:
+        app: clientapp
+        name: superexec
+        component: clientapp
+        {{- include "fl-client.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: clientapp
+          image: "{{ .Values.clientapp.image.repository }}:{{ .Values.clientapp.image.tag }}"
+          imagePullPolicy: {{ .Values.clientapp.image.pullPolicy }}
+          command: ["flower-superexec"]
+          args:
+            - --insecure
+            - --plugin-type=clientapp
+            - --appio-api-address=supernode:9094
+          env:
+            - name: DATA_DIR
+              value: /data
+            - name: CLIENT_ID
+              value: {{ include "fl-client.clientId" . }}
+            - name: MEMORY_LIMIT_MB
+              valueFrom:
+                resourceFieldRef:
+                  containerName: clientapp
+                  resource: limits.memory
+                  divisor: 1Mi
+          resources:
+            {{- toYaml .Values.clientapp.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+              readOnly: true
+      volumes:
+        - name: data
+          {{- if eq .Values.data.type "hostPath" }}
+          hostPath:
+            path: {{ .Values.data.hostPath }}
+            type: DirectoryOrCreate
+          {{- else if eq .Values.data.type "pvc" }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.data.existingClaim | default "fl-data" }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}

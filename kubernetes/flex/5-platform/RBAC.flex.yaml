@@ -1,0 +1,62 @@
+# ClusterRole for reading logs (Scoped permissions)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flex-log-reader
+  labels:
+    app.kubernetes.io/part-of: flex
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "watch"]
+
+---
+# ClusterRole for FLEX services management (kept for other services if needed, but reduced scope if possible)
+# Currently flex-backend/http-server might need to list namespaces/nodes
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flex-cluster-viewer
+  labels:
+    app.kubernetes.io/part-of: flex
+rules:
+  - apiGroups: [""]
+    resources: ["services", "namespaces", "nodes", "events"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["nodes", "pods"]
+    verbs: ["get", "list"]
+
+---
+# Bind flex-cluster-viewer globally (needed for service discovery/metrics)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: flex-cluster-viewer-binding
+  labels:
+    app.kubernetes.io/part-of: flex
+subjects:
+  - kind: ServiceAccount
+    name: flex-service-account
+    namespace: flex
+roleRef:
+  kind: ClusterRole
+  name: flex-cluster-viewer
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Bind flex-log-reader globally (needed for log puller to read logs from all namespaces)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: flex-log-reader-binding
+  labels:
+    app.kubernetes.io/part-of: flex
+subjects:
+  - kind: ServiceAccount
+    name: flex-service-account
+    namespace: flex
+roleRef:
+  kind: ClusterRole
+  name: flex-log-reader
+  apiGroup: rbac.authorization.k8s.io

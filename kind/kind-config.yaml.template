@@ -1,0 +1,60 @@
+# Kind cluster configuration for FL demo (TEMPLATE)
+# Use `task createconfig` to generate kind-config.yaml from this template
+#
+# 1 control-plane + 5 workers:
+#   - Worker 1 (server): For SuperLink, ServerApp, FLEX services
+#   - Workers 2-5 (clients): Each has hospital data mounted
+
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  # Control plane
+  - role: control-plane
+  
+  # Worker 1 - Server (SuperLink, ServerApp, FLEX services)
+  - role: worker
+    labels:
+      node-role: server
+    extraMounts:
+      - hostPath: __PROJECT_ROOT__/trained_models
+        containerPath: /trained_models
+  
+  # Worker 2 - Hospital A
+  - role: worker
+    labels:
+      node-role: client
+      hospital: hospital-a
+    extraMounts:
+      - hostPath: __PROJECT_ROOT__/client_data/client0
+        containerPath: /data
+        readOnly: true
+  
+  # Worker 3 - Hospital B
+  - role: worker
+    labels:
+      node-role: client
+      hospital: hospital-b
+    extraMounts:
+      - hostPath: __PROJECT_ROOT__/client_data/client1
+        containerPath: /data
+        readOnly: true
+  
+  # Worker 4 - Hospital C
+  - role: worker
+    labels:
+      node-role: client
+      hospital: hospital-c
+    extraMounts:
+      - hostPath: __PROJECT_ROOT__/client_data/client2
+        containerPath: /data
+        readOnly: true
+  
+  # Worker 5 - Hospital D
+  - role: worker
+    labels:
+      node-role: client
+      hospital: hospital-d
+    extraMounts:
+      - hostPath: __PROJECT_ROOT__/client_data/client3
+        containerPath: /data
+        readOnly: true

@@ -1,0 +1,23 @@
+# FLEX-Frontend Service
+# Exposed externally via NodePort or LoadBalancer
+apiVersion: v1
+kind: Service
+metadata:
+  name: flex-frontend
+  namespace: flex
+  labels:
+    name: flex-frontend
+    component: frontend
+    app.kubernetes.io/part-of: flex
+spec:
+  # Use NodePort for external access (change to LoadBalancer for cloud)
+  type: NodePort
+  selector:
+    name: flex-frontend
+    component: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      # NodePort will be auto-assigned (30000-32767) or specify one
+      # nodePort: 30080

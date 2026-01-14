@@ -1,0 +1,66 @@
+# FLEX-HTTP-Server Deployment
+# REST API server for FL training management and Kubernetes operations
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flex-http-server
+  namespace: flex
+  labels:
+    name: flex-http-server
+    component: api
+    app.kubernetes.io/part-of: flex
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: flex-http-server
+      component: api
+  template:
+    metadata:
+      labels:
+        name: flex-http-server
+        component: api
+    spec:
+      nodeSelector:
+        node-role: server
+      serviceAccountName: flex-service-account
+      containers:
+        - name: flex-http-server
+          image: kanathipz/flex-http-server:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8081
+              name: http
+          env:
+            # Port configuration
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: flex-config
+                  key: FLEX_HTTP_PORT
+            # Database connection
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: flex-db-secret
+                  key: DATABASE_URL
+            # KUBECONFIG is NOT set - will use InClusterConfig automatically
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20

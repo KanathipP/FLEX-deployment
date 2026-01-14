@@ -1,0 +1,26 @@
+# PersistentVolume for trained models - binds to Kind hostPath mount
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: trained-models-pv
+  labels:
+    type: local
+    app.kubernetes.io/part-of: flex
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: /trained_models  # Path on Kind node (mounted from host)
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: node-role
+              operator: In
+              values:
+                - server

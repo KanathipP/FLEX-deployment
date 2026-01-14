@@ -1,0 +1,79 @@
+# FlexLogPuller Deployment
+# Watches and pulls logs from superexec pods in flwr namespace
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flex-log-puller
+  namespace: flex
+  labels:
+    name: flex-log-puller
+    component: log-puller
+    app.kubernetes.io/part-of: flex
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: flex-log-puller
+      component: log-puller
+  template:
+    metadata:
+      labels:
+        name: flex-log-puller
+        component: log-puller
+    spec:
+      nodeSelector:
+        node-role: server
+      serviceAccountName: flex-service-account
+      containers:
+        - name: flex-log-puller
+          # TODO: Replace with your actual image registry/repository
+          image: kanathipz/flex-log-puller:latest
+          imagePullPolicy: Always
+          env:
+            # Environment
+            - name: ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: flex-config
+                  key: ENV
+            # Database connection
+            - name: DB_ADDR
+              valueFrom:
+                secretKeyRef:
+                  name: flex-db-secret
+                  key: DB_ADDR
+            # Database pool settings
+            - name: DB_MAX_OPEN_CONNS
+              valueFrom:
+                configMapKeyRef:
+                  name: flex-config
+                  key: DB_MAX_OPEN_CONNS
+            - name: DB_MAX_IDLE_CONNS
+              valueFrom:
+                configMapKeyRef:
+                  name: flex-config
+                  key: DB_MAX_IDLE_CONNS
+            - name: DB_MAX_IDLE_TIME
+              valueFrom:
+                configMapKeyRef:
+                  name: flex-config
+                  key: DB_MAX_IDLE_TIME
+            # Pod filter settings (which pods to watch)
+            - name: POD_FILTER_NAMESPACE
+              valueFrom:
+                configMapKeyRef:
+                  name: flex-config
+                  key: POD_FILTER_NAMESPACE
+            - name: POD_FILTER_LABEL_SELECTOR
+              valueFrom:
+                configMapKeyRef:
+                  name: flex-config
+                  key: POD_FILTER_LABEL_SELECTOR
+            # KUBECONFIG is NOT set - will use InClusterConfig automatically
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "25m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"

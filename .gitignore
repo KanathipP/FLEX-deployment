@@ -1,0 +1,5 @@
+.venv
+.task
+.devbox
+/trained_models/*
+/client_data

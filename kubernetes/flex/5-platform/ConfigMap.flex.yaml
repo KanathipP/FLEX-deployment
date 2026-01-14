@@ -1,0 +1,26 @@
+# ConfigMap for FLEX services configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flex-config
+  namespace: flex
+  labels:
+    app.kubernetes.io/part-of: flex
+data:
+  # Common environment
+  ENV: "production"
+
+  # FLEX-HTTP-Server config
+  FLEX_HTTP_PORT: "8081"
+
+  # FlexLogPuller config
+  FLEX_LOGPULLER_ADDR: ":8082"
+
+  # Pod filter config for FlexLogPuller (to watch superexec pods in flwr namespace)
+  POD_FILTER_NAMESPACE: ""
+  POD_FILTER_LABEL_SELECTOR: "name=superexec"
+
+  # Database connection pool settings
+  DB_MAX_OPEN_CONNS: "30"
+  DB_MAX_IDLE_CONNS: "30"
+  DB_MAX_IDLE_TIME: "15m"

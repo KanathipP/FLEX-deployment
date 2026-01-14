@@ -1,0 +1,19 @@
+# FLEX-Backend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: flex-backend
+  namespace: flex
+  labels:
+    name: flex-backend
+    component: backend
+    app.kubernetes.io/part-of: flex
+spec:
+  type: ClusterIP
+  selector:
+    name: flex-backend
+    component: backend
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000

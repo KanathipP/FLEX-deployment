@@ -1,0 +1,52 @@
+# FLEX-Frontend Deployment
+# React/Vite application served via nginx
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flex-frontend
+  namespace: flex
+  labels:
+    name: flex-frontend
+    component: frontend
+    app.kubernetes.io/part-of: flex
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: flex-frontend
+      component: frontend
+  template:
+    metadata:
+      labels:
+        name: flex-frontend
+        component: frontend
+    spec:
+      nodeSelector:
+        node-role: server
+      containers:
+        - name: flex-frontend
+          # TODO: Replace with your actual image registry/repository
+          image: kanathipz/flex-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              name: http
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "25m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 20

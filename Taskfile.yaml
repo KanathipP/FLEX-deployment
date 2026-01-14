@@ -1,0 +1,31 @@
+version: "3"
+includes:
+  kind:
+    taskfile: ./kind/Taskfile.yaml
+    dir: ./kind
+  flex:
+    taskfile: ./kubernetes/flex/Taskfile.yaml
+    dir: ./kubernetes/flex
+  demo:
+    taskfile: ./kubernetes/demo-clients/Taskfile.yaml
+    dir: ./kubernetes/demo-clients
+tasks:
+  # ============================
+  # Data Loading Tasks
+  # ============================
+  load-data:
+    desc: "Download and setup all client data (Motor Imagery + Mental Arithmetic)"
+    cmds:
+      - python scripts/load_client_data.py
+
+  # ============================
+  # Status Tasks
+  # ============================
+  kube-status:
+    desc: "Status of all namespaces"
+    cmds:
+      - 'echo "\n=== flex (server) ===" && kubectl get pods -n flex 2>/dev/null || echo "(not deployed)"'
+      - 'echo "\n=== hospital-a ===" && kubectl get pods -n hospital-a 2>/dev/null || echo "(not deployed)"'
+      - 'echo "\n=== hospital-b ===" && kubectl get pods -n hospital-b 2>/dev/null || echo "(not deployed)"'
+      - 'echo "\n=== hospital-c ===" && kubectl get pods -n hospital-c 2>/dev/null || echo "(not deployed)"'
+      - 'echo "\n=== hospital-d ===" && kubectl get pods -n hospital-d 2>/dev/null || echo "(not deployed)"'

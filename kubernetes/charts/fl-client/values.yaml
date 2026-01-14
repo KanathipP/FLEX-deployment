@@ -1,0 +1,57 @@
+# FL Client Configuration
+# Usage: helm install my-client ./fl-client --set superlinkAddr=... --set data.hostPath=...
+
+# Required: SuperLink address (provided by admin)
+superlinkAddr: ""
+
+# TLS Configuration
+tls:
+  enabled: false
+  # If enabled, create secret with: kubectl create secret generic fl-tls --from-file=...
+  secretName: fl-tls
+
+# Supernode configuration
+supernode:
+  image:
+    repository: flwr/supernode
+    tag: "1.22.0"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+# ClientApp configuration
+clientapp:
+  image:
+    repository: kanathipz/my-superexec
+    tag: "v9"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "500m"
+    limits:
+      memory: "8Gi"
+      cpu: "4000m"
+
+# Data volume (for training data)
+data:
+  # Type: emptyDir | hostPath | pvc
+  type: hostPath
+  
+  # For hostPath (recommended for local data):
+  hostPath: /data/fl-training  # Path on client machine where data exists
+  
+  # For PVC:
+  create: true           # Create PVC automatically
+  size: 10Gi             # PVC size
+  storageClass: ""       # Leave empty for default, or specify (e.g., "standard", "local-path")
+  existingClaim: ""      # Use existing PVC instead of creating new one
+
+# Node Selector (optional - lock pods to specific nodes)
+# Example: --set nodeSelector.hospital=hospital-a
+nodeSelector: {}

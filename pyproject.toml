@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "flex-deployment"
+version = "1.0.0"
+description = "FLEX Dataset Setup - Download and organize EEG datasets for Federated Learning"
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{include = "scripts"}]
+
+[tool.poetry.scripts]
+load-client-data = "scripts.load_client_data:main"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

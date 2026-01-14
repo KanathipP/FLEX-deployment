@@ -1,0 +1,48 @@
+version: "3"
+tasks:
+  hospital-a:
+    desc: "Deploy Hospital A client (8Gi memory)"
+    cmds:
+      - helm install hospital-a ../charts/fl-client --create-namespace -n hospital-a --set superlinkAddr=superlink.flex.svc.cluster.local:9092 --set data.hostPath=/data --set nodeSelector.hospital=hospital-a --set clientapp.resources.limits.memory=8Gi --set clientapp.resources.requests.memory=4Gi
+
+  hospital-b:
+    desc: "Deploy Hospital B client (12Gi memory)"
+    cmds:
+      - helm install hospital-b ../charts/fl-client --create-namespace -n hospital-b --set superlinkAddr=superlink.flex.svc.cluster.local:9092 --set data.hostPath=/data --set nodeSelector.hospital=hospital-b --set clientapp.resources.limits.memory=12Gi --set clientapp.resources.requests.memory=6Gi
+
+  hospital-c:
+    desc: "Deploy Hospital C client (8Gi memory)"
+    cmds:
+      - helm install hospital-c ../charts/fl-client --create-namespace -n hospital-c --set superlinkAddr=superlink.flex.svc.cluster.local:9092 --set data.hostPath=/data --set nodeSelector.hospital=hospital-c --set clientapp.resources.limits.memory=8Gi --set clientapp.resources.requests.memory=4Gi
+
+  hospital-d:
+    desc: "Deploy Hospital D client (12Gi memory)"
+    cmds:
+      - helm install hospital-d ../charts/fl-client --create-namespace -n hospital-d --set superlinkAddr=superlink.flex.svc.cluster.local:9092 --set data.hostPath=/data --set nodeSelector.hospital=hospital-d --set clientapp.resources.limits.memory=12Gi --set clientapp.resources.requests.memory=6Gi
+  delete-hospital-a:
+    desc: "Delete Hospital A client"
+    cmds:
+      - helm uninstall hospital-a -n hospital-a --ignore-not-found || true
+
+  delete-hospital-b:
+    desc: "Delete Hospital B client"
+    cmds:
+      - helm uninstall hospital-b -n hospital-b --ignore-not-found || true
+
+  delete-hospital-c:
+    desc: "Delete Hospital C client"
+    cmds:
+      - helm uninstall hospital-c -n hospital-c --ignore-not-found || true
+
+  delete-hospital-d:
+    desc: "Delete Hospital D client"
+    cmds:
+      - helm uninstall hospital-d -n hospital-d --ignore-not-found || true
+
+  delete-all:
+    desc: "Delete all demo clients"
+    cmds:
+      - helm uninstall hospital-a -n hospital-a --ignore-not-found || true
+      - helm uninstall hospital-b -n hospital-b --ignore-not-found || true
+      - helm uninstall hospital-c -n hospital-c --ignore-not-found || true
+      - helm uninstall hospital-d -n hospital-d --ignore-not-found || true

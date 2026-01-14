@@ -1,0 +1,17 @@
+{{- if and (eq .Values.data.type "pvc") .Values.data.create }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fl-data
+  labels:
+    {{- include "fl-client.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.data.size | default "10Gi" }}
+  {{- if .Values.data.storageClass }}
+  storageClassName: {{ .Values.data.storageClass }}
+  {{- end }}
+{{- end }}

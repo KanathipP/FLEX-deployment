@@ -1,0 +1,24 @@
+🎉 FLEX Federated Learning Client installed!
+
+Client Name: {{ include "fl-client.name" . }}
+Namespace:   {{ .Release.Namespace }}
+
+📊 Check status:
+  kubectl get pods -n {{ .Release.Namespace }}
+
+📋 View logs:
+  kubectl logs -n {{ .Release.Namespace }} -l app=supernode
+  kubectl logs -n {{ .Release.Namespace }} -l app=clientapp
+
+🔌 Configuration:
+  SuperLink:      {{ .Values.superlinkAddr }}
+  Partition ID:   {{ .Values.partitionId }}
+  Num Partitions: {{ .Values.numPartitions }}
+
+{{- if not .Values.tls.enabled }}
+⚠️  TLS is disabled. For production, enable TLS:
+  helm upgrade {{ .Release.Name }} fl-client --set tls.enabled=true
+{{- end }}
+
+🗑️  Uninstall:
+  helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}
